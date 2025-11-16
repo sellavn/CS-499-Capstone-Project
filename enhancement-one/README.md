@@ -11,7 +11,7 @@ This enhancement ports the original C++ course planner into a Python command lin
 
 ## Features/Additions
 
-- CLI via argparse subcommands
+- CLI via `argparse` subcommands
 
 - Persistent data cache between runs
 
@@ -58,6 +58,7 @@ python -m src --help
 
 ```bash
 # Load course data from CSV (uses default from config.ini)
+# Must be done first
 python -m src load
 
 # Load from specific file
