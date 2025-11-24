@@ -142,6 +142,33 @@ class CoursePlannerCLI:
         else:
             print("Failed to clear cache")
 
+    def validate_command(self, args):
+        """ handle 'validate command to check prerequisites """
+        if self.planner.get_course_count() == 0:
+            print("No courses have been loaded, run 'load' command first")
+            sys.exit(1)
+
+        if self.verbose:
+            print("Running prerequisite validation..")
+            print("Checking for:" )
+            print(" 1. non-existent prerequisites")
+            print(" 2. circular dependencies")
+            print()
+        
+        is_valid, errors = self.planner.validate_prerequisites()
+
+        if is_valid:
+            print("All prerequisites have been verified as valid")
+            print(f" checked {self.planner.get_course_count()} courses")
+            print(f" no circular dependencies found")
+            print(f" all prerequisites exist in catalog")
+        else:
+            print(f"Found {len(errors)} issues with prerequisite") 
+            print()
+            for i, error in enumerate(errors, 1):
+                print(f"{i}, {error}")
+            sys.exit(1)
+
     def run(self, argv = None):
         """
         main entry for CLI application
@@ -242,6 +269,14 @@ class CoursePlannerCLI:
             help='course number to search for (e.g, CS101)'
         )
         search_parser.set_defaults(func=self.search_command)
+
+        # validate command 
+        validate_parser = subparsers.add_parser(
+            "validate",
+            help='Validate course prerequisites',
+            description='Check for circular dependencies'
+        )
+        validate_parser.set_defaults(func=self.validate_command)
 
         # clear command
         clear_parser = subparsers.add_parser(

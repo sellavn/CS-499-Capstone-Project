@@ -1,4 +1,5 @@
 # Enhancement Two: Algorithms
+
 CS-499 
 Nicolas Valles
 
@@ -7,23 +8,39 @@ Enhanced Artifact: Python CLI tool conversion
 
 ## Overview
 
-This enhancement ports the original C++ course planner into a Python command line interface (CLI) tool. The project demonstrates modern software engineering practices by adding a modular architecture, configuration management, and type safe code design.
+Enhancement Two builds upon the previous Enhancement One by implementing advanced data structures and algorithms to improve performance within the CLI application. The focus is on replacing inefficient linear search operations with hash map indexing and implementing Depth-First Search (DFS) for prerequisite validation with cycle detection. A benchmark test has also been implemented to showcase improvements.
 
 ## Features/Additions
 
-- CLI via `argparse` subcommands
+- Hash Map Indexing
+  
+  - Enhancement One used linear search through vector - O(n) time complexity
+  
+  - Enhancement Two Improves via dictionary-based hash map - O(1) time complexity
 
-- Persistent data cache between runs
+- DFS Cycle Detection
+  
+  - Validates prerequisite relationships for circular dependencies
+  
+  - Graph traversal using Depth-First Search algorithm
+  
+  - Time Complexity: O(V + E) where V = courses, E = prerequisites
+  
+  - Prevents invalid course sequences
 
-- Config file support (config.ini)
+- Prerequisite Validation System
+  
+  - Checks for non-existent prerequisites
+  
+  - Detects circular dependency chains
+  
+  - Manual validation command
 
-- Type hints for readability and predictability
+## Performance Improvements
 
-- Docstrings for comprehension
+Taken from `benchmark_performance.py` within the `tests` directory
 
-- Cross platform (macOS, Windows, Linux)
 
-- Modular, maintainable
 
 ## Installation
 
@@ -52,7 +69,7 @@ venv\Scripts\activate
 python -m src --help
 ```
 
-## Usage 
+## Usage
 
 ## Quickstart commands
 
@@ -67,7 +84,7 @@ python -m src load --file path/to/courses.csv
 # List all courses in alphabetical order
 python -m src list
 
-# Search for specific course
+# Search for specific course (now uses hash map)
 python -m src search CS101
 
 # Clear cached data
@@ -97,23 +114,48 @@ python -m src list --help
 python -m src search --help
 ```
 
+## Validate Command
+
+Manually validate prerequisites and find warnings or errors
+
+```bash 
+python3 -m src validate
+python3 -m src --verbose validate
+```
+
+## Performance Benchmark
+
+**Make sure you are in the enhancement-two directory**
+
+```bash 
+python3 tests/benchmark_performance.py 
+```
+
 ## Project Structure
+
 ```
-enhancement-one                                 # Enhancement one root directory
-├── config.ini                                  # Application configuration file
-├── data                                        # Directory that holds the CSV files
-│   └── CS_300_ABCU_Advising_Program_Input.csv
-├── README.md                                   # You are here
-├── requirements.txt                            # Dependencies (empty)
-└── src                                         # Project code directory
-    ├── __init__.py                             # Package initialization
-    ├── __main__.py                             # Module entry point
-    ├── cli.py                                  # ClI interface with argparse
-    ├── config_manager.py                       # Course logic
-    ├── course_planner.py                       # Config management
-    └── models.py                               # Course dataclass
+enhancement-two                                # Enhancement two directory          
+├── config.ini                                 # Application configuration file
+├── data                                       # Directory that holds the CSV files
+│   ├── CS_300_ABCU_Advising_Program_Input.csv # Standard CSV file - no errors
+│   ├── test_circular.csv                      # CSV file that shows basic circular dependency errors
+│   ├── test_complex_circular.csv              # CSV file that shows complex circular dependency errors
+│   └── test_missing_prereq.csv                # CSV file that tests missing prerequisites
+├── README.md                                  # You are here
+├── requirements.txt                           # Dependencies (empty)
+├── src                                        # Project code directory
+│   ├── cli.py                                 # CLI interface with argparse
+│   ├── config_manager.py                      # Configuration
+│   ├── course_planner.py                      # Course logic and algorithms
+│   ├── __init__.py                            # Package initialization
+│   ├── __main__.py                            # Entry point
+│   ├── models.py                              # Data models
+└── tests
+    └── benchmark_performance.py               # Performance benchmark
+
 ```
-## Config 
+
+## Config
 
 Not many features currently, but mainly to edit default path and store technical details
 
@@ -159,12 +201,14 @@ CS103,Algorithms,CS102
 ## Platform Compatibility
 
 ### macOS/Linux
+
 ```bash
 python3 -m src load
 source venv/bin/activate
 ```
 
 ### Windows
+
 ```bash
 python -m src load
 venv\Scripts\activate
@@ -175,16 +219,21 @@ Uses `pathlib` for cross-platform path handling and Python standard library only
 ## Potential Errors
 
 ### "command not found: python"
+
 Some platforms use the `python3` command instead, a venv should be used to mitigate this 
 
 ### "No module named src"
-Make sure you're running from the `enhancement-one/` directory
+
+Make sure you're running from the `enhancement-two/` directory
 
 ### "No courses loaded"
+
 Must run `python -m src load` first to load data and access other functionality
 
 ### "Permission denied"
+
 Check file permissions on the data directory and CSV file
 
 ### Cache/other issues
+
 Clear cache with `python -m src clear` and reload data
