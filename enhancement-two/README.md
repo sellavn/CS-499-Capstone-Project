@@ -40,7 +40,83 @@ Enhancement Two builds upon the previous Enhancement One by implementing advance
 
 Taken from `benchmark_performance.py` within the `tests` directory
 
+```
+======================================================================
+PERFORMANCE BENCHMARK: Linear Search vs Hash Map Lookup
+======================================================================
 
+Dataset: 4 courses
+Iterations: 1,000 searches per method
+
+Testing linear search (O(n)):
+ Total time: 0.0023 seconds
+ Average per search: 0.56 microseconds
+
+Testing hash map lookup (0(1)):
+ total time: 0.0016 seconds
+ Average per search: 0.41 microseconds
+
+======================================================================
+results
+======================================================================
+speed up factor: 1.37x faster
+performance improvement: 27.0%
+
+analysis
+----------------------------------------------------------------------
+Linear search O(n):
+ - Checks up to 4 courses per search
+ - Time grows linearly with dataset size
+ - Average case: n/2 comparisons
+
+Hash map lookup O(1):
+ - Direct index access in constant time
+ - Time remains constant regardless of dataset size
+ - Always 1 operation
+
+With 4 courses, hash map is ~1.4x faster
+This advantage grows significantly with larger datasets
+
+Projected Scaling
+----------------------------------------------------------------------
+With 40 courses:
+ Linear search: ~20 comparisons on average
+ Hash map:      1 operation (constant)
+
+With 400 courses:
+ Linear search: ~200 comparisons on average
+ Hash map:      1 operation (constant)
+
+With 4,000 courses:
+ Linear search: ~2,000 comparisons on average
+ Hash map:      1 operation (constant)
+
+With 40,000 courses:
+ Linear search: ~20,000 comparisons on average
+ Hash map:      1 operation (constant)
+
+======================================================================
+
+======================================================================
+DFS cycle detection performance
+======================================================================
+
+dataset: 4 courses
+running validation with DFS cycle detection
+
+validation completed in: 0.01 milliseconds
+result: Valid
+issues found: 0
+
+complexity analysis
+----------------------------------------------------------------------
+DFS cycle detection: O(V + E)
+ V (vertices/courses): 4
+ E (edges/prerequisites): 3
+
+DFS visits each course once then checks each prerequisite once,
+making it fairly efficient for larger course catalogs
+```
 
 ## Installation
 
