@@ -26,7 +26,7 @@ This repository contains my capstone project demonstrating skills across three k
 
 - `enhancement-three/` - Category 3: Databases
 
--`docs/` - All written deliverables and narratives
+- `docs/` - All written deliverables and narratives
 
 ## Planned Enhancements Summary
 
