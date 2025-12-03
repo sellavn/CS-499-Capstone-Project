@@ -129,7 +129,7 @@ Enhancement Three supports **two operating modes**:
 python3 -m src migrate
 
 # Migrate with verbose output
-python3 -m src migrate -v
+python3 -m src -v migrate 
 
 # Migrate custom CSV file
 python3 -m src migrate --file data/custom_courses.csv
@@ -143,7 +143,7 @@ python3 -m src migrate --db-path my_catalog.db
 **Load from database**
 ```bash
 python3 -m src load --database
-python3 -m src load --database -v                    # Verbose mode
+python3 -m src -v load --database                    # Verbose mode
 python3 -m src load --database --db-path custom.db   # Custom database
 ```
 
@@ -159,7 +159,7 @@ python3 -m src load --file data/custom.csv
 # Database mode (must load with --database first)
 python3 -m src load --database
 python3 -m src search CSCI101
-python3 -m src search CSCI101 -v    # Shows "Using parameterized SQL query"
+python3 -m src -v search CSCI101     # Shows "Using parameterized SQL query"
 
 # CSV mode
 python3 -m src load
@@ -170,7 +170,7 @@ python3 -m src search CSCI101        # Uses hash map O(1) lookup
 
 ```bash
 python3 -m src list
-python3 -m src list -v    # Shows data source (database vs memory)
+python3 -m src -v list     # Shows data source (database vs memory)
 ```
 
 ### Validate Prerequisites
@@ -179,7 +179,7 @@ Checks for circular dependencies and missing prerequisites.
 
 ```bash
 python3 -m src validate
-python3 -m src validate -v    # Verbose output
+python3 -m src -v validate     # Verbose output
 ```
 
 ### Clear Cache
