@@ -1,0 +1,6 @@
+CS101,Introduction to Computer Science
+CS102,Data Structures,CS101
+CS103,Algorithms,CS102
+CS104,Advanced Topics,CS103
+CS105,Theory,CS104,CS102
+CS102,Data Structures,CS105
