@@ -42,6 +42,43 @@ class CoursePlannerCLI:
         self.verbose = False
         self.use_database = False
 
+    def _ensure_planner_loaded(self):
+        """
+        Ensure planner is loaded with data before command execution
+    
+        Tries to load from cache first (CSV mode), then checks for database
+        """
+        if self.planner is not None and self.planner.get_course_count() > 0:
+            return  # loaded
+    
+        # check if database exists
+        db_path = Path('course_catalog.db')
+        if db_path.exists():
+            # try database mode
+            if self.verbose:
+                print("Auto-loading from database...")
+        self.planner = CoursePlanner(use_database=True, db_path='course_catalog.db')
+        success = self.planner.load_from_database()
+        if success and self.planner.get_course_count() > 0:
+            return
+    
+        # try CSV mode with cache
+        if self.planner is None:
+            self.planner = CoursePlanner(use_database=False)
+    
+        # try loading from cache
+        if self.planner.load_from_cache():
+            if self.planner.get_course_count() > 0:
+                if self.verbose:
+                    print(f"Auto-loaded from cache: {self.planner.get_course_count()} courses")
+                return
+    
+        # no data available
+        print("No data loaded. Please run one of:")
+        print("  python3 -m src load --database    # Load from database")
+        print("  python3 -m src load                # Load from CSV")
+        sys.exit(1)
+
     def load_command(self, args):
         """ 
         handles load command for loading courses from CSV
@@ -180,13 +217,9 @@ class CoursePlannerCLI:
 
     def list_command(self, args):
         """ handles list command for displaying courses """
-        if not self.planner:
-            print("No data loaded. Please run 'load' or 'load --database' command first")
-            sys.exit(1)
-
-        if self.planner.get_course_count() == 0:
-            print("No courses loaded, please run 'load' command first")
-            sys.exit(1)
+    
+        # Auto-load data if needed
+        self._ensure_planner_loaded()
 
         # get sorted courses
         courses = self.planner.get_sorted_courses()
@@ -208,14 +241,9 @@ class CoursePlannerCLI:
 
     def search_command(self, args):
         """ handle search command to find specific course """
-        
-        if not self.planner:
-            print("No data loaded. Please run 'load' or 'load --database' command first")
-            sys.exit(1)
-
-        if self.planner.get_course_count() == 0:
-            print("No courses loaded, please run 'load' command first")
-            sys.exit(1)
+    
+        # auto-load data if needed
+        self._ensure_planner_loaded()
 
         course_number = args.course_number
 
@@ -265,14 +293,9 @@ class CoursePlannerCLI:
 
     def validate_command(self, args):
         """ handle 'validate command to check prerequisites """
-       
-        if not self.planner:
-            print("No data loaded. Please run 'load' or 'load --database' command first")
-            sys.exit(1)
-       
-        if self.planner.get_course_count() == 0:
-            print("No courses have been loaded, run 'load' command first")
-            sys.exit(1)
+   
+        # Auto-load data if needed
+        self._ensure_planner_loaded()
 
         if self.verbose:
             print("Running prerequisite validation..")
@@ -280,7 +303,7 @@ class CoursePlannerCLI:
             print(" 1. non-existent prerequisites")
             print(" 2. circular dependencies")
             print()
-        
+    
         is_valid, errors = self.planner.validate_prerequisites()
 
         if is_valid:
