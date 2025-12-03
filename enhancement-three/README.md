@@ -158,12 +158,12 @@ python3 -m src load --file data/custom.csv
 ```bash
 # Database mode (must load with --database first)
 python3 -m src load --database
-python3 -m src search CSCI101
-python3 -m src -v search CSCI101     # Shows "Using parameterized SQL query"
+python3 -m src search CS101
+python3 -m src -v search CS101     # Shows "Using parameterized SQL query"
 
 # CSV mode
 python3 -m src load
-python3 -m src search CSCI101        # Uses hash map O(1) lookup
+python3 -m src search CS101        # Uses hash map O(1) lookup
 ```
 
 ### List All Courses
