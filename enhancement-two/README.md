@@ -129,7 +129,7 @@ making it fairly efficient for larger course catalogs
 
 ```bash
 # Clone or download repository zip
-cd enhancement-one
+cd enhancement-two
 
 # Create venv
 python -m venv venv
