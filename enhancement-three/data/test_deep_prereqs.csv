@@ -1,0 +1,9 @@
+CS100,Introduction to Programming
+CS200,Data Structures,CS100
+CS300,Algorithms,CS200
+CS400,Advanced Algorithms,CS300
+CS500,Theory of Computation,CS400
+MATH100,Calculus I
+MATH200,Calculus II,MATH100
+MATH300,Linear Algebra,MATH200
+CS450,Machine Learning,CS400,MATH300

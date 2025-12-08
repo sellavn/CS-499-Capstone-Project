@@ -108,8 +108,48 @@ class ConfigManager:
         get application name
 
         Returns:
-            Application name string
+            application name string
         
         """
 
         return self.config.get('app', 'name', fallback='Course Planner')
+
+    def get_log_level(self) -> str:
+        """
+        get logging level from config
+    
+        Returns:
+            log level string (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+        
+        """
+        
+        return self.config.get('logging', 'level', fallback='INFO').upper()
+
+    def get_log_to_file(self) -> bool:
+        """
+        check if file logging is enabled
+    
+        Returns:
+            true if file logging enabled
+        """
+        
+        return self.config.getboolean('logging', 'log_to_file', fallback=False)
+
+    def get_log_file(self) -> str:
+        """
+        get log file path from config
+    
+        Returns:
+            path to log file
+        """
+        
+        return self.config.get('logging', 'log_file', fallback='logs/course_planner.log')
+
+    def get_log_format_style(self) -> str:
+        """
+        Get log format style
+    
+        Returns:
+            formatting ('simple' or 'detailed')
+        """
+        return self.config.get('logging', 'format_style', fallback='simple')

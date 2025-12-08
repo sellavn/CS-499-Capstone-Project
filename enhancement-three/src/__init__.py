@@ -19,5 +19,7 @@ from .course_planner import CoursePlanner
 from .config_manager import ConfigManager
 from .cli import CoursePlannerCLI
 from .database import DatabaseManager
+from .logger import get_logger, LoggerConfig
 
-__all__ = ['Course', 'CoursePlanner', 'ConfigManager', 'CoursePlannerCLI', 'DatabaseManager']
+__all__ = ['Course', 'CoursePlanner', 'ConfigManager', 'CoursePlannerCLI', 
+           'DatabaseManager', 'get_logger', 'LoggerConfig']

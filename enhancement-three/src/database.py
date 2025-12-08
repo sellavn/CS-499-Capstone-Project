@@ -378,7 +378,9 @@ class DatabaseManager:
             
         Returns:
             course_id if successful, None otherwise
+        
         """
+        
         try:
             with self.transaction() as conn:
                 cursor = conn.cursor()
@@ -415,7 +417,9 @@ class DatabaseManager:
             
         Returns:
             True if successful, False otherwise
+        
         """
+        
         try:
             with self.transaction() as conn:
                 cursor = conn.cursor()
@@ -453,7 +457,9 @@ class DatabaseManager:
             
         Returns:
             True if successful, False otherwise
+        
         """
+        
         try:
             with self.transaction() as conn:
                 cursor = conn.cursor()
@@ -487,7 +493,9 @@ class DatabaseManager:
             
         Returns:
             True if successful, False otherwise
+        
         """
+        
         try:
             with self.transaction() as conn:
                 cursor = conn.cursor()
@@ -541,7 +549,9 @@ class DatabaseManager:
             
         Returns:
             True if successful, False otherwise
+        
         """
+        
         try:
             with self.transaction() as conn:
                 cursor = conn.cursor()
@@ -592,7 +602,9 @@ class DatabaseManager:
             
         Returns:
             list of prerequisite course numbers
+        
         """
+        
         try:
             conn = self.connect()
             cursor = conn.cursor()
@@ -613,3 +625,165 @@ class DatabaseManager:
         except sqlite3.Error as e:
             print(f"Error getting prerequisites: {e}")
             return []
+
+    def get_courses_with_prerequisites_join(self) -> List[tuple]:
+        """
+        get all courses with their prerequisites using SQL JOIN
+    
+        proper JOIN syntax for many-to-many relationships
+    
+        Returns:
+            list of tuples: (course_number, course_name, prerequisite_number, prerequisite_name)
+        
+        """
+        
+        try:
+            conn = self.connect()
+            cursor = conn.cursor()
+        
+            # JOIN query showing courses with their prerequisites
+            cursor.execute('''
+                SELECT 
+                    c1.course_number,
+                    c1.course_name,
+                    course_number AS prerequisite_number,
+                    c2.course_name AS prerequisite_name
+                FROM courses c1
+                LEFT JOIN prerequisites p ON c1.course_id = p.course_id
+                LEFT JOIN courses c2 ON p.prerequisite_course_id = c2.course_id
+                ORDER BY c1.course_number, c2.course_number
+            ''')
+        
+            return cursor.fetchall()
+        
+        except sqlite3.Error as e:
+            self.logger.error(f"Error in JOIN query: {e}") if hasattr(self, 'logger') else print(f"Error: {e}")
+            return []
+
+    def get_prerequisite_chain(self, course_number: str) -> List[tuple]:
+        """
+        get complete prerequisite chain using recursive CTE
+    
+        use sqlite's recursive Common Table Expression (CTE) to traverse
+        the prerequisite tree and find all direct and indirect prerequisites.
+    
+        e.g: If CS400 requires CS300, which requires CS200, which requires CS100,
+        this will return all four courses showing the complete chain.
+    
+        Args:
+            course_number: starting course number
+        
+        Returns:
+            list of tuples: (level, course_number, course_name, direct_prerequisite)
+            level 0 is the starting course, Level 1 is direct prerequisites, etc.
+        
+        """
+        
+        try:
+            conn = self.connect()
+            cursor = conn.cursor()
+        
+            course_number = course_number.strip().upper()
+        
+            # recursive CTE to traverse prerequisite tree
+            cursor.execute('''
+                WITH RECURSIVE prerequisite_tree(level, course_id, course_number, course_name, prereq_id) AS (
+                    -- Base case: Start with the requested course
+                    SELECT 
+                        0 AS level,
+                        c.course_id,
+                        c.course_number,
+                        c.course_name,
+                        c.course_id AS prereq_id
+                    FROM courses c
+                    WHERE c.course_number = ?
+                
+                    UNION ALL
+                
+                    -- Recursive case: Get prerequisites of courses in current level
+                    SELECT 
+                        pt.level + 1,
+                        c.course_id,
+                        c.course_number,
+                        c.course_name,
+                        p.prerequisite_course_id
+                FROM prerequisite_tree pt
+                JOIN prerequisites p ON pt.course_id = p.course_id
+                JOIN courses c ON p.prerequisite_course_id = c.course_id
+                )
+                SELECT DISTINCT
+                    level,
+                    course_number,
+                    course_name,
+                    CASE 
+                        WHEN level = 0 THEN 'Starting Course'
+                        ELSE 'Prerequisite'
+                    END AS relationship
+                FROM prerequisite_tree
+                WHERE level > 0  -- Exclude the starting course from results
+                ORDER BY level, course_number
+            ''', (course_number,))
+        
+            results = cursor.fetchall()
+        
+            if self.verbose:
+                print(f"Found {len(results)} prerequisites in chain for {course_number}")
+        
+            return results
+        
+        except sqlite3.Error as e:
+            self.logger.error(f"Error in recursive CTE query: {e}") if hasattr(self, 'logger') else print(f"Error: {e}")
+            return []
+
+    def get_full_prerequisite_chain(self, course_number: str) -> dict:
+        """
+        get complete prerequisite chain with detailed information
+    
+        returns a structured view of all prerequisites organized by level
+    
+        Args:
+            course_number: Course to analyze
+        
+        Returns:
+            Dictionary with course info and prerequisite levels
+        
+        """
+        try:
+            conn = self.connect()
+            cursor = conn.cursor()
+        
+            course_number = course_number.strip().upper()
+        
+            # get starting course info
+            starting_course = self.get_course_by_number(course_number)
+            if not starting_course:
+                return {'error': f'Course {course_number} not found'}
+        
+            # get prerequisite chain
+            chain = self.get_prerequisite_chain(course_number)
+        
+            # organize by level
+            levels = {}
+            for row in chain:
+                level = row['level']
+                if level not in levels:
+                    levels[level] = []
+                levels[level].append({
+                    'course_number': row['course_number'],
+                    'course_name': row['course_name'],
+                    'relationship': row['relationship']
+                })
+        
+            return {
+                'course': {
+                    'number': starting_course.course_number,
+                    'name': starting_course.name
+                },
+                'total_prerequisites': len(chain),
+                'max_depth': max(levels.keys()) if levels else 0,
+                'levels': levels
+            }
+        
+        except Exception as e:
+            self.logger.error(f"Error getting full chain: {e}") if hasattr(self, 'logger') else print(f"Error: {e}")
+            return {'error': str(e)}

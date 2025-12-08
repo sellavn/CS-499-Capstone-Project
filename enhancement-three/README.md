@@ -26,6 +26,13 @@ Enhancement Three adds greater functionality to the Course Planner by creating a
 
 - CRUD Operations - Full Create, Read, Update, Delete support
 
+**Stretch Goals Implemented Post-Enhancement-Three:**
+
+- Recursive Common Table Expression (CTE) - Analyzes complete prerequisite chains, finding all direct and indirect prerequisites, prereq-chain command created to showcase this feature.
+
+- Logging - In-depth logging and debugging that prints to a dedicated .log file and is configured within the previously created .ini config file
+
+
 ### Tables
 
 #### `courses` Table
@@ -188,6 +195,14 @@ python3 -m src -v validate     # Verbose output
 python3 -m src clear    # Clears pickle cache (CSV mode only)
 ```
 
+### Prereq Chain
+
+Analyzes complete prerequisite chains, finding all direct and indirect prerequisites.
+
+```bash
+python3 -m src prereq-chain CS500
+```
+
 ---
 
 ## Project Structure
@@ -199,7 +214,8 @@ enhancement-three
 │   ├── CS_300_ABCU_Advising_Program_Input.csv
 │   ├── test_circular.csv
 │   ├── test_complex_circular.csv
-│   └── test_missing_prereq.csv
+│   ├── test_missing_prereq.csv
+│   └── test_deep_prereqs.csv                   # For testing prereq-chain
 ├── README.md                                   # You are here
 ├── requirements.txt                            # Dependencies (empty)
 ├── src                                         # Source code directory
@@ -209,6 +225,7 @@ enhancement-three
 │   ├── config_manager.py                       # Configuration handling
 │   ├── course_planner.py                       # Core logic
 │   ├── database.py                             # Database manager
+│   ├── logger.py                               # Logging manager
 │   └── models.py                               # Course data model
 └── tests                                       # Testing directory for benchmarks/functionality
     ├── benchmark_performance.py
@@ -219,7 +236,7 @@ enhancement-three
 
 ## Config
 
-Not many features currently, but mainly to edit default path and store technical details
+Configure logging, see program info, and default CSV path
 
 Edit `config.ini` file to change these settings:
 
@@ -229,7 +246,14 @@ default_csv_path = data/CS_300_ABCU_Advising_Program_Input.csv
 
 [app]
 name = Course Planner
-version = 1.0
+version = 2.0
+
+[logging]
+# Log levels: DEBUG, INFO, WARNING, ERROR, CRITICAL
+level = INFO
+log_to_file = true
+log_file = logs/course_planner.log
+format_style = detailed
 ```
 
 ## CSV File Format

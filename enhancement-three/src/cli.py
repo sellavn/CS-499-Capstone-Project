@@ -18,6 +18,7 @@ from typing import Optional
 from .course_planner import CoursePlanner
 from .config_manager import ConfigManager
 from .database import DatabaseManager
+from .logger import LoggerConfig, get_logger
 
 class CoursePlannerCLI:
     """
@@ -35,12 +36,22 @@ class CoursePlannerCLI:
     """
 
     def __init__(self):
-        """ initialize CLI with course planner instance"""
-        
+        """ initialize CLI with course planner instance """
+    
         self.planner = None
         self.config = ConfigManager()
         self.verbose = False
         self.use_database = False
+    
+        # initialize logging from config
+        LoggerConfig.setup_logging(
+            level=self.config.get_log_level(),
+            log_to_file=self.config.get_log_to_file(),
+            log_file=self.config.get_log_file(),
+            format_style=self.config.get_log_format_style()
+        )
+    
+        self.logger = get_logger()
 
     def _ensure_planner_loaded(self):
         """
@@ -82,53 +93,52 @@ class CoursePlannerCLI:
     def load_command(self, args):
         """ 
         handles load command for loading courses from CSV
-        
+    
         --database flag: loads from SQLite database
         without flag: loads from CSV file 
-
         """
-        
+    
         self.use_database = args.database if hasattr(args, 'database') else False
-        
+    
         # initialize planner with appropriate mode
         if self.use_database:
             db_path = args.db_path if hasattr(args, 'db_path') and args.db_path else 'course_catalog.db'
             self.planner = CoursePlanner(use_database=True, db_path=db_path)
-            
-            if self.verbose:
-                print(f"Database mode enabled: {db_path}")
-                print("Loading courses from SQLite database...")
-            
+        
+            self.logger.debug(f"Database mode enabled: {db_path}")
+            self.logger.info("Loading courses from SQLite database...")
+        
             try:
                 success = self.planner.load_from_database()
-                
+            
                 if success:
                     count = self.planner.get_course_count()
+                    self.logger.info(f"Successfully loaded {count} courses from database")
                     print(f"Successfully loaded {count} courses from database")
                 else:
+                    self.logger.error("Failed to load courses from database")
                     print("Failed to load courses from database")
                     print("Try running 'migrate' command first to populate the database")
                     sys.exit(1)
-                    
+                
             except Exception as e:
+                self.logger.error(f"Error loading from database: {e}", exc_info=True)
                 print(f"Error loading from database: {e}")
                 if self.verbose:
                     traceback.print_exc()
                 sys.exit(1)
-        
+    
         else:
             # CSV mode
             self.planner = CoursePlanner(use_database=False)
-            
+        
             # determine file to load
             if args.file:
                 filepath = args.file
-                if self.verbose:
-                    print(f"Loading from specified file: {filepath}")
+                self.logger.debug(f"Loading from specified file: {filepath}")
             else:
                 filepath = self.config.get_default_csv_path()
-                if self.verbose:
-                    print(f"Loading from default file: {filepath}")
+                self.logger.debug(f"Loading from default file: {filepath}")
 
             # attempt to load file
             try:
@@ -136,17 +146,21 @@ class CoursePlannerCLI:
 
                 if success:
                     count = self.planner.get_course_count()
+                    self.logger.info(f"Successfully loaded {count} courses from {filepath}")
                     print(f"Successfully loaded {count} courses from {filepath}")
                     if self.verbose:
                         print("Data has been cached for future use")
                 else:
+                    self.logger.error(f"Failed to load courses from {filepath}")
                     print(f"Failed to load courses from {filepath}")
                     sys.exit(1)
 
             except FileNotFoundError as e:
+                self.logger.error(f"File not found: {e}")
                 print(f"Error: {e}")
                 sys.exit(1)
             except Exception as e:
+                self.logger.error(f"Unexpected error: {e}", exc_info=True)
                 print(f"Unexpected error: {e}")
                 if self.verbose:
                     traceback.print_exc()
@@ -156,43 +170,46 @@ class CoursePlannerCLI:
     def migrate_command(self, args):
         """
         handles migrate command for CSV to SQLite migration
-        
+    
         performs a complete ETL operation with transaction safety
         """
-        
+    
         if self.verbose:
             print("=" * 70)
-            print("DATABASE MIGRATION: CSV -> SQLite")
+            print("DATABASE MIGRATION: CSV → SQLite")
             print("=" * 70)
             print()
-        
+    
         # determine source CSV file
         if args.file:
             csv_path = args.file
         else:
             csv_path = self.config.get_default_csv_path()
-        
+    
         # determine database path
         db_path = args.db_path if hasattr(args, 'db_path') and args.db_path else 'course_catalog.db'
-        
+    
+        self.logger.info(f"Starting migration: {csv_path} → {db_path}")
+    
         if self.verbose:
             print(f"Source CSV: {csv_path}")
             print(f"Target database: {db_path}")
             print()
             print("Starting migration...")
             print()
-        
+    
         try:
             # create database manager
             db = DatabaseManager(db_path, verbose=self.verbose)
-            
+        
             # CSV migration
             success, courses, prereqs = db.migrate_from_csv(csv_path)
-            
+        
             if success:
+                self.logger.info(f"Migration successful: {courses} courses, {prereqs} prerequisites")
                 print()
                 print("=" * 70)
-                print("MIGRATION SUCCESSFUL")
+                print("Migration Successful")
                 print("=" * 70)
                 print(f"Migrated {courses} courses")
                 print(f"Migrated {prereqs} prerequisite relationships")
@@ -200,15 +217,18 @@ class CoursePlannerCLI:
                 print()
                 print("You can now use: python3 -m src load --database")
             else:
+                self.logger.error("Migration failed")
                 print("Migration failed")
                 sys.exit(1)
-            
+        
             db.close()
-            
+        
         except FileNotFoundError as e:
+            self.logger.error(f"CSV file not found: {e}")
             print(f"Error: CSV file not found - {e}")
             sys.exit(1)
         except Exception as e:
+            self.logger.error(f"Migration error: {e}", exc_info=True)
             print(f"Migration error: {e}")
             if self.verbose:
                 traceback.print_exc()
@@ -242,10 +262,12 @@ class CoursePlannerCLI:
     def search_command(self, args):
         """ handle search command to find specific course """
     
-        # auto-load data if needed
+        # Auto-load data if needed
         self._ensure_planner_loaded()
 
         course_number = args.course_number
+    
+        self.logger.debug(f"Searching for course: {course_number}")
 
         if self.verbose:
             mode = "database" if self.planner.use_database else "memory"
@@ -266,6 +288,7 @@ class CoursePlannerCLI:
             course = self.planner.find_course_fast(course_number)
 
         if course:
+            self.logger.debug(f"Course found: {course.course_number}")
             # display course info
             print(f"{course.course_number}, {course.name}")
 
@@ -275,6 +298,7 @@ class CoursePlannerCLI:
             else:
                 print("Prerequisites: None")
         else:
+            self.logger.warning(f"Course not found: {course_number}")
             print(f"Course not found: {course_number}")
             if self.verbose:
                 print("*Course numbers are case-insensitive*")
@@ -318,27 +342,106 @@ class CoursePlannerCLI:
                 print(f"{i}, {error}")
             sys.exit(1)
 
+    def prereq_chain_command(self, args):
+        """ handle prerequisite-chain command to show all indirect prerequisites """
+    
+        # auto-load data if needed
+        self._ensure_planner_loaded()
+    
+        course_number = args.course_number
+    
+        self.logger.info(f"Analyzing prerequisite chain for {course_number}")
+    
+        if not self.planner.use_database:
+            print("Prerequisite chain analysis requires database mode")
+            print("Please run: python3 -m src load --database")
+            sys.exit(1)
+    
+        # get full prerequisite chain
+        result = self.planner.db.get_full_prerequisite_chain(course_number)
+    
+        if 'error' in result:
+            self.logger.error(f"Error: {result['error']}")
+            print(f"Error: {result['error']}")
+            sys.exit(1)
+    
+        # display results
+        course = result['course']
+        total = result['total_prerequisites']
+        max_depth = result['max_depth']
+        levels = result['levels']
+    
+        print("=" * 70)
+        print(f"PREREQUISITE CHAIN ANALYSIS")
+        print("=" * 70)
+        print()
+        print(f"Course: {course['number']} - {course['name']}")
+        print(f"Total Prerequisites (direct + indirect): {total}")
+        print(f"Maximum Depth: {max_depth} level(s)")
+        print()
+    
+        if total == 0:
+            print("This course has no prerequisites")
+            return
+    
+        # display by level
+        for level in sorted(levels.keys()):
+            courses = levels[level]
+            level_name = "Direct Prerequisites" if level == 1 else f"Level {level} Prerequisites"
+            print(f"{level_name}:")
+            print("-" * 70)
+        
+            for course_info in courses:
+                indent = "  " * (level - 1)
+                print(f"{indent}→ {course_info['course_number']}: {course_info['course_name']}")
+        
+            print()
+    
+        # show visualization
+        if self.verbose:
+            print("Prerequisite Tree Visualization:")
+            print("-" * 70)
+            self._print_prereq_tree(course_number, levels, max_depth)
+
+    def _print_prereq_tree(self, root_course: str, levels: dict, max_depth: int):
+        """ helper function to print tree visualization """
+        print(f"{root_course}")
+    
+        for level in sorted(levels.keys()):
+            courses = levels[level]
+            indent = "  " * level
+            prefix = "└──" if level == max_depth else "├──"
+        
+            for i, course_info in enumerate(courses):
+                is_last = (i == len(courses) - 1) and (level == max_depth)
+                connector = "└──" if is_last else "├──"
+                print(f"{indent}{connector} {course_info['course_number']}")
+
     def run(self, argv = None):
         """
         main entry for CLI application
 
         Args:
             argv: CLI arguments, defaults to sys.argv
-            
         """
 
-        parser=self._create_parser()
+        parser = self._create_parser()
         args = parser.parse_args(argv)
-        
+    
         # verbose mode
         self.verbose = args.verbose
-
+    
         if self.verbose:
+            LoggerConfig.enable_verbose()
+            self.logger.debug("Verbose mode enabled")
             print(f"Course Planner CLI - Version {self.config.get_version()}")
             print()
 
+        self.logger.info("CLI started")
+    
         # exec appropriate command
         if hasattr(args, 'func'):
+            self.logger.debug(f"Executing command: {args.command}")
             args.func(args)
         else:
             # if no command is specified show help
@@ -470,6 +573,20 @@ class CoursePlannerCLI:
             description='Remove the cached course data file'
         )
         clear_parser.set_defaults(func=self.clear_command)
+
+        # prerequisite chain command (recursive CTE)
+        prereq_chain_parser = subparsers.add_parser(
+            'prereq-chain',
+            help='Show complete prerequisite chain (recursive)',
+            description='Display all direct and indirect prerequisites using recursive SQL query'
+        )
+
+        prereq_chain_parser.add_argument(
+            'course_number',
+            type=str,
+            help='course number to analyze (e.g., CS400)'
+        )
+        prereq_chain_parser.set_defaults(func=self.prereq_chain_command)
 
         return parser
 
